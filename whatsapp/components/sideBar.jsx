@@ -5,159 +5,56 @@ import MessageTwoToneIcon from '@mui/icons-material/MessageTwoTone';
 import MoreVertTwoToneIcon from '@mui/icons-material/MoreVertTwoTone';
 import { IconButton, Button } from "@mui/material";
 import SearchTwoToneIcon from '@mui/icons-material/SearchTwoTone';
-// import { GoogleLogin } from '@react-oauth/google';
-// import { GoogleOAuthProvider } from '@react-oauth/google';
 import { initializeApp } from "firebase/app";
-// import { getAnalytics } from "firebase/analytics";
 import * as EmailValidator from "email-validator";
-// import { app, auth, db, provider } from "../firebase";
 import {
     getAuth, GoogleAuthProvider, signInWithRedirect,
-    getRedirectResult
+    getRedirectResult, signInWithPopup
 } from 'firebase/auth';
+// import Login from "../pages/login";
+
+import auth from "../firebase";
+import axios from 'axios';
+// import userData from '../pages/login';
+import ChatDisplay from "./chatDisplay";
+import ChatList from "./chatList";
+
 const firebase = require('@firebase/app');
-const Container = styled.div
-    `
-
-`;
-
-const Header = styled.div
-    `
-    display: flex;
-    position: sticky;
-    top: 0;
-    background-color: white;
-    z-index: 1;
-    justify-content: space-between;
-    align-items: center;
-    padding: 15px;
-    height: 80px;
-    border-bottom: 1px solid whitesmoke;
-`;
-
-const IconContainer = styled.div
-    `
-
-`
-
-let UserAvatar = styled(AccountCircleIcon)
-    `
-    color: silver;
-    font-size: 3rem;
-    cursor: pointer;
-    :hover{
-        opacity: 0.8;
-    }
-`;
-
-const ChatIcon = styled(MessageTwoToneIcon)
-    `
-    font-size: 2rem;
-    margin: 0% 0% 1% 15%;
-`
-
-const DotsIcon = styled(MoreVertTwoToneIcon)
-    `
-    font-size: 2rem;
-    margin: 0% 0% 0% 0%;
-
-    border-width: 0px;
-`
-
-const SearchDiv = styled.div
-    `
-    display: flex;
-    align-items: center;
-    padding: 20px;
-    border-radius: 3px;
-`;
-
-const SearchIcon = styled(SearchTwoToneIcon)
-    `
-    cursor: pointer;
-    color: black;
-    font-size: 1.5rem;
-    margin-right: 5px;
-`
-
-const SearchInput = styled.input
-    `
-    outline-width: 0;
-    border: none;
-    flex: 1;
-`;
-
-const SideBarButton = styled(Button)
-    `
-    width: 100%;
-    border-top: 1px solid whitesmoke;
-    border-bottom: 1px solid whitesmoke;
-    color: black;
-`
-
-const ImgStyle = styled.img
-`
-    width: 50px;
-    height: 50px;
-    border-radius: 30px;
-`
 
 
-export default () => {
+export default (props) => {
+    const { googleLogin, setGoogleLogin} = props;
+    // console.log("User " + JSON.stringify(googleLogin.user.email))
+    const url = 'http://10.1.0.52:3001';
+    const [users, setUsers] = useState([]);
+
+
     const createChat = () => {
         const input = prompt(
-            "Enter an email address for the user you wish to chat with:");
-        console.log(input);
+            "Enter an email address for  the user you wish to chat with:");
+        console.log(input + " Input");
         if (!input) { return null; }
 
         if (EmailValidator.validate(input)) {
+            console.log("Validated input")
+            axios.put(url + '/register', { params: { emailOne: googleLogin.user.email, emailTwo: input }}).then(res => {
+                console.log(JSON.stringify(res.data));
+                setUsers(res.data)
+            });
             // we need to add the chat into the DB 'chats' collection 
+        }else{
+            alert("Please enter a valid email address");
         }
     }
 
-    const firebaseConfig = {
-        apiKey: "AIzaSyD9BmC5oYlcmpWar308pS5GVLwrESznQXQ",
-        authDomain: "whatsapp-bd5dc.firebaseapp.com",
-        projectId: "whatsapp-bd5dc",
-        storageBucket: "whatsapp-bd5dc.appspot.com",
-        messagingSenderId: "523912150721",
-        appId: "1:523912150721:web:51496b4a5a5bb831d21e40",
-        measurementId: "G-ZQ5YEDS6HT"
-    };
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const provider = new GoogleAuthProvider;
-    const [user, setUser] = useState('');
-    console.log(user.photoURL + " USERR")
-    const [img, setImg] = useState('');
-
-
-    const handleClick = () => {
-        signInWithRedirect(auth, provider)
-
-    }
-
-    const handleGetAuth = () => {
-        getRedirectResult(auth).then((result) => {
-            const credential = GoogleAuthProvider.credentialFromResult(result);
-            console.log(credential);
-            console.log("               ")
-            console.log(credential.idToken)
-            console.log("               ")
-
-            console.log(credential.accessToken)
-            console.log("               ")
-            console.log(credential.providerId)
-
-            setUser(result.user);
-            setImg(result.user.photoURL);
-        })
-    }
+    console.log((googleLogin.user))
+    const [user, setUser] = useState(googleLogin.user.email);//destructing (to arrayss)
+    const [img, setImg] = useState(googleLogin.user.photoURL);
 
     return (
         <Container>
             <Header>
-                {!user ? <UserAvatar /> : <ImgStyle src={img} alt={" NOTHING"} />}
+                {!user ? <UserAvatar /> : <ImgStyle src={img} alt={"NOTHING"} />}
                 <IconContainer>
                     <IconButton >
                         <ChatIcon />
@@ -173,11 +70,102 @@ export default () => {
             </SearchDiv>
             <SideBarButton onClick={createChat}>Start a new chat</SideBarButton>
 
-            <button onClick={handleClick} >Google</button>
-            <button onClick={handleGetAuth}>Get a random token</button>
-            {/* {GoogleSignInButton()} */}
+            {/* <button onClick={handleClick} >Google</button> */}
             {/* List of  chats */}
             <hr></hr>
+            
+            {/* <ChatDisplay googleLogin={googleLogin}/> */}
+            <ChatList googleLogin={googleLogin} users={users} setUsers={setUsers}/>
+
         </Container>
     );
 }
+
+
+
+const Container = styled.div
+    `
+    
+`;
+
+const Header = styled.div
+    `
+    display: flex;
+    position: sticky;
+    top: 0;
+    background-color: white;
+    z-index: 1;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0% 0% 0% 0%;
+    height: 80px;
+    border-bottom: 1px solid whitesmoke;
+`;
+
+const IconContainer = styled.div
+    `
+`
+
+const UserAvatar = styled(AccountCircleIcon)
+    `
+    color: silver;
+    cursor: pointer;
+    :hover{
+        opacity: 0.8;
+    }
+    font-size: 3rem;
+    `;
+
+const ChatIcon = styled(MessageTwoToneIcon)
+    `
+    margin: 0% 0% 1% 15%;
+    font-size: 2rem;
+    `
+
+const DotsIcon = styled(MoreVertTwoToneIcon)
+    `
+    margin: 0% 0% 0% 0%;
+    
+    border-width: 0px;
+    font-size: 2rem;
+    `
+
+const SearchDiv = styled.div
+    `
+    display: flex;
+    align-items: center;
+    padding: 20px;
+    border-radius: 3px;
+`;
+
+const SearchIcon = styled(SearchTwoToneIcon)
+    `
+    cursor: pointer;
+    color: black;
+    margin-right: 5px;
+    font-size: 1.5rem;
+    `
+
+const SearchInput = styled.input
+    `
+    outline-width: 0;
+    border: none;
+    flex: 1;
+`;
+
+const SideBarButton = styled(Button)
+    `
+    border-top: 1px solid whitesmoke;
+    border-bottom: 1px solid whitesmoke;
+    color: black;
+    width: 100%;
+    `
+
+const ImgStyle = styled.img
+`
+    width: 50px;
+    height: 50px;
+    border-radius: 30px;
+    
+
+`
