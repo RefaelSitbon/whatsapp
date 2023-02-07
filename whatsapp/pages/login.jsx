@@ -1,14 +1,21 @@
+import React, {useState } from "react";
 import styled from "styled-components";
 import Head from "next/head";
 import { signInWithRedirect, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import { Button } from "@mui/material";
 import auth from "../firebase";
+// import { Link } from 'react-router-dom';
+import Link from 'next/link';
+import { useRouter } from 'next/router';
+import SideBar from "./sideBar";
 
+export var googleLog = null;
 
 function Login(props) {
-    const { login, setLogin, googleLogin, setGoogleLogin } = props;
+    const { login, setLogin, googleLogin, setGoogleLogin} = props;
+    const router = useRouter();
 
-
+    console.log("inside Login");
 
     const handleClick = () => {
         // signInWithRedirect(auth, provider);
@@ -16,32 +23,39 @@ function Login(props) {
         // setLogin(true);        
         // });
         signInWithPopup(auth, new GoogleAuthProvider()).then(() => {
-            setLogin(true);
+            // setLogin(true);
         });
     }
 
     const handleChange = async() => {
-        console.log("HEREEEE!!1")
         await signInWithPopup(auth, new GoogleAuthProvider())
         .then((result) => {
-            console.log("HEREEEE!!2")
 
-            setGoogleLogin(result);
-            setLogin(true);
+            googleLog = result;
+            router.push("./sideBar");
+            // <Link href={"/sideBar"}>
+            //     <SideBar />
+            // </Link>
+            
+            // <Link to="sideBar"></Link>
+            // setGoogleLogin(result);
+            // setLogin(true);
         });
     }
 
     return (
-        <Container>
+        <div>
+            {/* <Link to="sideBar"></Link> */}
+
             <Head>
                 <title>Login</title>
             </Head>
-            <LoginContainer>
-                <Image src="https://upload.wikimedia.org/wikipedia/commons/thumb/6/6b/WhatsApp.svg/1200px-WhatsApp.svg.png" alt=" FUCK!!!" />
+            <div>
+                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/6/6b/WhatsApp.svg/1200px-WhatsApp.svg.png" alt=" FUCK!!!" />
                 {/* <Button variant="outlined" onClick={handleClick}>Login</Button> */}
                 <Button variant="outlined" onClick={handleChange} >Rgister with Google account </Button>
-            </LoginContainer>
-        </Container>
+            </div>
+        </div>
     )
 }
 

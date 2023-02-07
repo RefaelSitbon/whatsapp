@@ -5,6 +5,28 @@ const app = express();
 const port = 3001;
 const url = 'mongodb://localhost:27017/whatsapp';
 
+
+const io = require('socket.io')(3002, {
+    cors: {
+        origin: '*',
+    }
+});
+
+const socketMailArray = [];
+
+// const io = Server(3002);
+io.on("connect", (socket) => {
+    socketMailArray.push({email: email, socketId: socket.id});
+    console.log(socket.id + " connected ");
+    //     socket.emit("oneTry", "sap????");
+    socket.emit('try', socketMailArray[socketMailArray.length - 1]);
+    //     // socket.on("newMessage", (obj) => {
+    //     //     console.log(obj.emailOne + " " + obj.emailTwo + " " + obj.text + " " + obj.socket + " ID");
+    //     // });
+});
+io.on("log", (arr) => { console.log(arr + " ARR") });
+
+
 const whatsappSchema = new mongoose.Schema({
     emailOne: String,
     emailTwo: String,
@@ -34,32 +56,27 @@ app.get('/', async (req, res) => {
     const name = "Refael";
     const Model = new mongoose.model(`${name}`, whatsappSchema);
     await Model.create({ emailOne: "lyhxr@example.com", emailTwo: "lyhxr@example.com", text: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod" });
-    // const arr = [];
-    // arr.push("sitbon.refael@gmail.com")
-    // arr.push("s.refael1992@gmail.com")
-    // await RegisterModel.create({email : "refael.sitbon@gmail.com", secondaryEmails: arr})
-    // const array = await RegisterModel.find({email : "s.refael1992@gmail.com"});
-    // const newSecondaryEmails = ["refael.sitbon@gmail.com", "sitbon.refael@gmail.com"];
-    // await RegisterModel.findOneAndUpdate({email : "s.refael1992@gmail.com", secondaryEmails:  newSecondaryEmails});
+
     res.send("success");
 });
+
 
 app.put('/register', async (req, res) => {
     const email = req.body.params.emailOne;
     const secondaryEmails = req.body.params.emailTwo;
     const user = await RegisterModel.find({ email: email });
 
-    console.log(user)
-    let array = [];
-    array = user[0].secondaryEmails;
+    console.log(user + " USER!!")
+    const array = user[0].secondaryEmails;
     if (!array.includes(secondaryEmails)) {
         array.push(secondaryEmails);
     }
-    await RegisterModel.findOneAndUpdate({ email: email, secondaryEmails: array });
-    array.push(secondaryEmails);
+    const filter = { email: email };
+    const update = { secondaryEmails: array };
+    await RegisterModel.findOneAndUpdate(filter, update);
     console.log(array);
-    const NewModel = createModel(email, secondaryEmails);
-    // await NewModel.create({email: email});
+    createModel(email, secondaryEmails);
+    updateConnectedUsers(email, secondaryEmails);
     res.send(array);
 })
 
@@ -76,50 +93,47 @@ app.get('/chats', async (req, res) => {
     const NewModel = createModel(emailOne, emailTwo);
     const allPosts = await NewModel.find({});
     // const allPosts = [...postsOne, ...postsTwo];
-    console.log(allPosts[0]);
+    // console.log(allPosts[0]);
 
     res.send(allPosts);
 })
 
+var email = null;
+
 app.get('/users', async (req, res) => {
     const chats = await RegisterModel.find({ email: req.query.googleLogin });
-    console.log(chats);
+    email = req.query.googleLogin;
+    // console.log(chats);
     if (!chats.length) {
         console.log("CREATE NEW USER my user is: " + req.query.googleLogin);
         await RegisterModel.create({ email: req.query.googleLogin });
     }
+
+    console.log(email + " $##");
     res.send(chats);
 });
 
 app.post('/chats', async (req, res) => {
     const emailOne = req.body.emailOne;
     const emailTwo = req.body.emailTwo;
+    const mailAndSocket = socketMailArray.find(element => element.email === emailTwo);
     // emailTwo.replace(`/`, "");
     console.log(req.body.emailTwo + " ONEE");
-
+    
     const NewModel = createModel(emailOne, emailTwo);
     await NewModel.create(req.body);
-
-    // const size = emailOne.length > emailTwo.length ? emailTwo.length : emailOne.length;
-    // for (let i = 0; i < size; ++i) {
-    //     if (emailOne.charAt(i) > emailTwo.charAt(i)) {
-    //         const NewModel = new mongoose.model(`${emailOne + emailTwo}`, whatsappSchema);
-    //         await NewModel.create(req.body);
-    //         break;
-    //     }else if (emailOne.charAt(i) < emailTwo.charAt(i)) {
-    //         const NewModel = new mongoose.model(`${emailTwo + emailOne}`, whatsappSchema);
-    //         await NewModel.create(req.body);
-    //         break;
-    //     }
-    // }
-
-    // await WhatsappModel.create(req.body);
+    const chatArray = await NewModel.find({});
+    if(mailAndSocket){
+        console.log(mailAndSocket.socketId + " this is my email")
+        io.to(mailAndSocket.socketId).emit('alert', chatArray);
+        console.log("AFTER SEND")
+    }
 
     res.send("success");
 });
 
 const createModel = (emailOne, emailTwo) => {
-    const size = emailOne.length > emailTwo.length ? emailTwo.length : emailOne.length;
+    const size = emailOne?.length > emailTwo?.length ? emailTwo?.length : emailOne?.length;
 
     let NewModel;
 
@@ -138,5 +152,19 @@ const createModel = (emailOne, emailTwo) => {
 
     return NewModel;
 }
+
+const updateConnectedUsers = async (emailOne, emailTwo) => {
+    const user = await RegisterModel.find({ email: emailTwo });
+    if (!user.length) {
+        const arr = [];
+        arr.push(emailOne);
+        await RegisterModel.create({ email: emailTwo, secondaryEmails: arr })
+    } else {
+        const arr = user[0].secondaryEmails;
+        arr.push(emailOne);
+        await RegisterModel.findOneAndUpdate({ email: emailTwo }, { secondaryEmails: arr });
+    }
+}
+
 
 app.listen(port, () => console.log(`Server listening on port ${port}`));

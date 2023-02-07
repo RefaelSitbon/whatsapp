@@ -6,63 +6,55 @@ import ChatDisplay from "./chatDisplay";
 import SendTwoToneIcon from '@mui/icons-material/SendTwoTone';
 
 export default (props) => {
-    const { googleLogin, users, setUsers } = props;
+    const { googleLogin, users, setUsers, conversetion, setConversation, socketMain } = props;
     const [chat, setChat] = useState(false);
     const [text, setText] = useState("");
     const [user, setUser] = useState("");
 
-    const url = 'http://10.1.0.52:3001';
-    const [conversetion, setConversation] = useState([]);
-    const getUsers = () => {
-        axios.get(url + '/users', { params: { googleLogin: googleLogin.user.email } }).then(res => {
-            console.log(res.data);
-            if (res.data[0]) {
-                console.log(res.data[0].secondaryEmails)
-                setConversation(res.data[0].secondaryEmails);
-
-                setUsers(res.data[0].secondaryEmails);
-            }
-        });
-    }
-
-    useEffect(() => {
-        getUsers();
-    }, []);
+    const url = 'http://10.56.1.1:3001';
+    
 
     const showChats = (email) => {
-        console.log(email + " " + googleLogin.user.email + " %%%");
+        // console.log(email + " " + googleLogin.user.email + " %%%");
         axios.get(url + '/chats', { params: { emailOne: googleLogin.user.email, emailTwo: email } }).then(res => {
             setChat(true);
             setUser(email);
             if (res.data[0]) {
-                console.log(res.data[0]);
+                console.log(res.data);
                 // console.log((res.data[0].emailTwo.replaceAll(`"`, "")) + " showChats @@@@");
                 // console.log(JSON.stringify(res.data) + " showChats @@@@");
             }
             setConversation(res.data);
+            const emailOne = googleLogin.user.email;
+            const emailTwo = res.data[0].emailTwo === googleLogin.user.email ? res.data[0].emailOne : res.data[0].emailTwo;
+            // const text = res.data[0].text;
         });
     }
 
     const sendMessage = () => {
         const emailOne = googleLogin.user.email
         const emailTwo = user
-        console.log(emailOne + " " + emailTwo + " TWOO");
-        const mainEmail = googleLogin.user.email;
+        // const mainEmail = googleLogin.user.email;
 
         axios.post(url + '/chats', {
-            text: text, emailOne: emailOne,
+            text: text, 
+            emailOne: emailOne,
             emailTwo: emailTwo
         }).then(res => {
+            const obj = {emailOne: emailOne, emailTwo: emailTwo, text: text}
+            // socket.emit("newMessage", obj);
             console.log(res.data);
-            setText("");
             // setUser("");
+            setText("");
             showChats(user);
+
         });
     }
 
     return (
         <DivDisplayStyled>
             <div>
+                {/* <div>{getUsers()}</div> */}
                 {users.map((email, index) => {
                     return (
                         <DivStyled key={index + 1000}>
@@ -70,7 +62,7 @@ export default (props) => {
                             <button onClick={() => showChats(email)}>{email}</button>
                         </DivStyled>
                     );
-                })}
+                })} 
             </div>
             {!chat ? null :
                 <div>

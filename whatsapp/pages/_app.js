@@ -1,4 +1,4 @@
-import '../styles/globals.css'
+// import '../styles/globals.css'
 // import { useAuthState } from "react-firebase-hooks/auth"
 // import  auth from "../firebase";
 import Login from './login';
